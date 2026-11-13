@@ -27,24 +27,43 @@
 
 (() => {
   'use strict';
-  const video = document.querySelector('#teaching-video');
-  const toggle = document.querySelector('.video-toggle');
-  if (!video || !toggle) return;
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const update = () => { toggle.textContent = video.paused ? 'Reproduzir vídeo' : 'Pausar vídeo'; };
-  video.muted = true;
-  video.controls = false;
-  toggle.hidden = false;
-  video.addEventListener('play', update);
-  video.addEventListener('pause', update);
-  toggle.addEventListener('click', () => {
-    if (video.paused) video.play().catch(update);
-    else video.pause();
-  });
-  motion.addEventListener('change', event => { if (event.matches) video.pause(); });
-  if (!motion.matches) {
-    video.autoplay = true;
-    video.play().catch(update);
+  for (const video of document.querySelectorAll('video[data-loop-video]')) {
+    const toggle = video.closest('figure')?.querySelector('.video-toggle');
+    if (!toggle) continue;
+    let manuallyPaused = false;
+    let visible = false;
+    const update = () => {
+      const label = video.paused ? 'Reproduzir vídeo' : 'Pausar vídeo';
+      toggle.textContent = label;
+      toggle.setAttribute('aria-label', `${label}: ${video.getAttribute('aria-label')}`);
+    };
+    const play = () => video.play().catch(update);
+    video.muted = true;
+    video.controls = false;
+    toggle.hidden = false;
+    video.addEventListener('play', update);
+    video.addEventListener('pause', update);
+    toggle.addEventListener('click', () => {
+      manuallyPaused = !video.paused;
+      if (manuallyPaused) video.pause();
+      else play();
+    });
+    motion.addEventListener('change', event => {
+      if (event.matches) video.pause();
+      else if (visible && !manuallyPaused) play();
+    });
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(entries => {
+        visible = entries[0].isIntersecting && entries[0].intersectionRatio >= 0.15;
+        if (!visible) video.pause();
+        else if (!motion.matches && !manuallyPaused) play();
+      }, { threshold: 0.15 });
+      observer.observe(video);
+    } else {
+      visible = true;
+      if (!motion.matches) play();
+    }
+    update();
   }
-  update();
 })();
