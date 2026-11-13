@@ -32,6 +32,7 @@
     const toggle = video.closest('figure')?.querySelector('.video-toggle');
     const frame = video.closest('.loop-video-frame');
     if (!toggle || !frame) continue;
+    const autoPlay = video.dataset.playback !== 'manual';
     let manuallyPaused = false;
     let automaticPause = false;
     let visible = false;
@@ -58,7 +59,7 @@
     };
     const play = () => {
       failed = false;
-      video.autoplay = !motion.matches;
+      video.autoplay = autoPlay && !motion.matches;
       const result = video.play();
       if (result?.catch) result.catch(error => {
         if (error.name !== 'AbortError') failed = true;
@@ -100,7 +101,7 @@
     });
     const motionChanged = event => {
       if (event.matches) pauseAutomatically();
-      else if (visible && !manuallyPaused) play();
+      else if (autoPlay && visible && !manuallyPaused) play();
     };
     if (motion.addEventListener) motion.addEventListener('change', motionChanged);
     else motion.addListener(motionChanged);
@@ -108,12 +109,12 @@
       const observer = new IntersectionObserver(entries => {
         visible = entries[0].isIntersecting && entries[0].intersectionRatio >= 0.15;
         if (!visible) pauseAutomatically();
-        else if (!motion.matches && !manuallyPaused) play();
+        else if (autoPlay && !motion.matches && !manuallyPaused) play();
       }, { threshold: 0.15 });
       observer.observe(video);
     } else {
       visible = true;
-      if (!motion.matches) play();
+      if (autoPlay && !motion.matches) play();
     }
     update();
   }
