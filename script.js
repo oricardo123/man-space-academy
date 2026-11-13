@@ -30,33 +30,84 @@
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   for (const video of document.querySelectorAll('video[data-loop-video]')) {
     const toggle = video.closest('figure')?.querySelector('.video-toggle');
-    if (!toggle) continue;
+    const frame = video.closest('.loop-video-frame');
+    if (!toggle || !frame) continue;
     let manuallyPaused = false;
+    let automaticPause = false;
     let visible = false;
+    let hasFrame = false;
+    let failed = false;
     const update = () => {
-      const label = video.paused ? 'Reproduzir vídeo' : 'Pausar vídeo';
+      const playing = hasFrame && !video.paused && !video.ended;
+      const label = playing ? 'Pausar vídeo' : (failed ? 'Tentar reproduzir vídeo' : 'Reproduzir vídeo');
       toggle.textContent = label;
       toggle.setAttribute('aria-label', `${label}: ${video.getAttribute('aria-label')}`);
     };
-    const play = () => video.play().catch(update);
+    const confirmFrame = () => {
+      if (video.readyState < 2 || video.videoWidth === 0 || video.paused) return;
+      hasFrame = true;
+      failed = false;
+      frame.classList.add('has-video-frame');
+      update();
+    };
+    const pauseAutomatically = () => {
+      video.autoplay = false;
+      if (video.paused) return;
+      automaticPause = true;
+      video.pause();
+    };
+    const play = () => {
+      failed = false;
+      video.autoplay = !motion.matches;
+      const result = video.play();
+      if (result?.catch) result.catch(error => {
+        if (error.name !== 'AbortError') failed = true;
+        update();
+      });
+    };
+    frame.classList.add('is-enhanced');
     video.muted = true;
-    video.controls = false;
+    video.defaultMuted = true;
+    video.controls = true;
     toggle.hidden = false;
-    video.addEventListener('play', update);
-    video.addEventListener('pause', update);
+    video.addEventListener('playing', () => {
+      if ('requestVideoFrameCallback' in video) video.requestVideoFrameCallback(confirmFrame);
+      else if (video.currentTime > 0) confirmFrame();
+      update();
+    });
+    video.addEventListener('timeupdate', () => {
+      if (!hasFrame && video.currentTime > 0) confirmFrame();
+      else update();
+    });
+    video.addEventListener('pause', () => {
+      hasFrame = false;
+      frame.classList.remove('has-video-frame');
+      if (automaticPause) automaticPause = false;
+      else if (visible) manuallyPaused = true;
+      update();
+    });
+    video.addEventListener('play', () => { manuallyPaused = false; update(); });
+    video.addEventListener('error', () => {
+      failed = true;
+      hasFrame = false;
+      frame.classList.remove('has-video-frame');
+      video.controls = true;
+      update();
+    });
     toggle.addEventListener('click', () => {
-      manuallyPaused = !video.paused;
-      if (manuallyPaused) video.pause();
-      else play();
+      if (hasFrame && !video.paused && !video.ended) { manuallyPaused = true; video.pause(); }
+      else { manuallyPaused = false; if (video.error) video.load(); play(); }
     });
-    motion.addEventListener('change', event => {
-      if (event.matches) video.pause();
+    const motionChanged = event => {
+      if (event.matches) pauseAutomatically();
       else if (visible && !manuallyPaused) play();
-    });
+    };
+    if (motion.addEventListener) motion.addEventListener('change', motionChanged);
+    else motion.addListener(motionChanged);
     if ('IntersectionObserver' in window) {
       const observer = new IntersectionObserver(entries => {
         visible = entries[0].isIntersecting && entries[0].intersectionRatio >= 0.15;
-        if (!visible) video.pause();
+        if (!visible) pauseAutomatically();
         else if (!motion.matches && !manuallyPaused) play();
       }, { threshold: 0.15 });
       observer.observe(video);

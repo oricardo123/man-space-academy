@@ -123,3 +123,8 @@ details[open] .plus::after { display: none; }
 }
 @media (max-width: 360px) { .button { min-height: 76px; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* Keep an ordinary image visible until the video has a decoded frame. */
+.loop-video-frame { position: relative; width: 100%; overflow: hidden; border-radius: var(--radius); background: var(--ink); }
+.loop-video-frame > .video-poster { display: none; position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; pointer-events: none; }
+.loop-video-frame.is-enhanced:not(.has-video-frame) > .video-poster { display: block; }
