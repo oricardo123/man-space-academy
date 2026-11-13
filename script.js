@@ -24,3 +24,27 @@
     for (const action of document.querySelectorAll('main .whatsapp-link')) observer.observe(action);
   }
 })();
+
+(() => {
+  'use strict';
+  const video = document.querySelector('#teaching-video');
+  const toggle = document.querySelector('.video-toggle');
+  if (!video || !toggle) return;
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const update = () => { toggle.textContent = video.paused ? 'Reproduzir vídeo' : 'Pausar vídeo'; };
+  video.muted = true;
+  video.controls = false;
+  toggle.hidden = false;
+  video.addEventListener('play', update);
+  video.addEventListener('pause', update);
+  toggle.addEventListener('click', () => {
+    if (video.paused) video.play().catch(update);
+    else video.pause();
+  });
+  motion.addEventListener('change', event => { if (event.matches) video.pause(); });
+  if (!motion.matches) {
+    video.autoplay = true;
+    video.play().catch(update);
+  }
+  update();
+})();
