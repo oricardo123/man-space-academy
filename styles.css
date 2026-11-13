@@ -38,7 +38,7 @@ strong { font-weight: 650; }
 .svg-library { width: 0; height: 0; position: absolute; overflow: hidden; }
 svg { width: 20px; height: 20px; flex: none; vertical-align: middle; }
 .header { min-height: 112px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); border-bottom: 1px solid var(--line); }
-.official-logo { display: block; position: relative; width: 156px; height: 91px; overflow: hidden; flex: none; }
+.official-logo { display: block; position: relative; width: 156px; height: 91px; overflow: hidden; flex: none; background: var(--background); isolation: isolate; }
 .official-logo img { position: absolute; width: 225px; height: 400px; max-width: none; left: -34px; top: -150px; filter: grayscale(1) brightness(1.5); mix-blend-mode: multiply; }
 nav { display: flex; gap: var(--space-3); }
 nav a, .header-contact { font-size: var(--action-size); line-height: 1.5; font-weight: 600; }
